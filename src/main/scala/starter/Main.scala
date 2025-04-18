@@ -1,10 +1,8 @@
 package starter
 
 import com.bloxbean.cardano.client.common.model.Networks
-import com.monovore.decline.Command
-import com.monovore.decline.Opts
+import com.monovore.decline.{Command, Opts}
 import scalus.*
-import scalus.prelude.Maybe.*
 
 import scala.language.implicitConversions
 

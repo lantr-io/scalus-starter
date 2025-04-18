@@ -2,16 +2,17 @@ package starter
 
 import com.bloxbean.cardano.client.account.Account
 import scalus.*
-import scalus.builtin.given
 import scalus.builtin.ByteString.given
 import scalus.builtin.Data.toData
-import scalus.builtin.{ByteString, Data, PlatformSpecific}
+import scalus.builtin.{ByteString, Data, PlatformSpecific, given}
 import scalus.ledger.api.v3.*
 import scalus.ledger.api.v3.ToDataInstances.given
 import scalus.prelude.*
+import scalus.testkit.ScalusTest
 import scalus.uplc.*
 import scalus.uplc.TermDSL.{*, given}
 import scalus.uplc.eval.*
+import starter.MintingPolicy.MintingConfig
 
 import scala.language.implicitConversions
 
@@ -20,11 +21,8 @@ enum Expected {
     case Failure(reason: String)
 }
 
-class MintingPolicySpec extends munit.ScalaCheckSuite {
+class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
     import Expected.*
-
-    // Plutus V3 VM with default machine parameters
-    private given PlutusVM = PlutusVM.makePlutusV3VM()
 
     private val account = new Account()
 
@@ -41,7 +39,7 @@ class MintingPolicySpec extends munit.ScalaCheckSuite {
 
     test(s"validator size is ${mintingScript.script.flatEncoded.length} bytes") {
         val size = mintingScript.script.flatEncoded.length
-        assertEquals(size, 3516)
+        assertEquals(size, 3697)
     }
 
     test(
@@ -51,13 +49,14 @@ class MintingPolicySpec extends munit.ScalaCheckSuite {
           mint = Value(mintingScript.scriptHash, tokenName, 1000),
           signatories = List(pubKeyHash)
         )
+        val config = MintingConfig(pubKeyHash, tokenName)
         // run the minting policy script as a Scala function
         // here you can use debugger to debug the minting policy script
-        MintingPolicy.mintingPolicy(pubKeyHash, tokenName, ctx)
+        MintingPolicy.validate(config.toData)(ctx.toData)
         // run the minting policy script as a Plutus script
         assertEval(
           mintingScript.script $ ctx.toData,
-          Success(ExBudget.fromCpuAndMemory(cpu = 49532838, memory = 188639))
+          Success(ExBudget.fromCpuAndMemory(cpu = 51405034, memory = 198443))
         )
     }
 
@@ -66,9 +65,10 @@ class MintingPolicySpec extends munit.ScalaCheckSuite {
           mint = Value(mintingScript.scriptHash, tokenName ++ ByteString.fromString("extra"), 1000),
           signatories = List(pubKeyHash)
         )
+        val config = MintingConfig(pubKeyHash, tokenName)
 
         interceptMessage[IllegalArgumentException]("Token name not found"):
-            MintingPolicy.mintingPolicy(pubKeyHash, tokenName, ctx)
+            MintingPolicy.validate(config.toData)(ctx.toData)
 
         assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
     }
@@ -78,9 +78,10 @@ class MintingPolicySpec extends munit.ScalaCheckSuite {
           mint = Value(mintingScript.scriptHash, tokenName, 1000),
           signatories = List(PubKeyHash(crypto.blake2b_224(ByteString.fromString("wrong"))))
         )
+        val config = MintingConfig(pubKeyHash, tokenName)
 
-        interceptMessage[Exception]("Not found"):
-            MintingPolicy.mintingPolicy(pubKeyHash, tokenName, ctx)
+        interceptMessage[Exception]("Not signed by admin"):
+            MintingPolicy.validate(config.toData)(ctx.toData)
 
         assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
     }
@@ -90,9 +91,10 @@ class MintingPolicySpec extends munit.ScalaCheckSuite {
           mint = Value(mintingScript.scriptHash, tokenName, 1000),
           signatories = List.Nil
         )
+        val config = MintingConfig(pubKeyHash, tokenName)
 
-        interceptMessage[Exception]("Not found"):
-            MintingPolicy.mintingPolicy(pubKeyHash, tokenName, ctx)
+        interceptMessage[Exception]("Not signed by admin"):
+            MintingPolicy.validate(config.toData)(ctx.toData)
 
         assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
     }
@@ -101,27 +103,16 @@ class MintingPolicySpec extends munit.ScalaCheckSuite {
         ScriptContext(
           txInfo = TxInfo(
             inputs = List.Nil,
-            referenceInputs = List.Nil,
-            outputs = List.Nil,
             fee = BigInt("188021"),
             mint = mint,
-            certificates = List.Nil,
-            withdrawals = AssocMap.empty,
-            validRange = Interval.always,
             signatories = signatories,
-            redeemers = AssocMap.empty,
-            data = AssocMap.empty,
-            id = TxId(hex"1e0612fbd127baddfcd555706de96b46c4d4363ac78c73ab4dee6e6a7bf61fe9"),
-            votes = AssocMap.empty,
-            proposalProcedures = List.Nil,
-            currentTreasuryAmount = Maybe.Nothing,
-            treasuryDonation = Maybe.Nothing
+            id = random[TxId]
           ),
           redeemer = Data.unit,
           scriptInfo = ScriptInfo.MintingScript(mintingScript.scriptHash)
         )
 
-    def assertEval(p: Program, expected: Expected): Unit = {
+    private def assertEval(p: Program, expected: Expected): Unit = {
         val result = p.evaluateDebug
         (result, expected) match
             case (result: Result.Success, Expected.Success(expected)) =>

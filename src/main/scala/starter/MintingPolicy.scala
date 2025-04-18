@@ -20,9 +20,8 @@ import scalus.ledger.api.v1.FromDataInstances.given
 import scalus.ledger.api.v1.ToDataInstances.given
 import scalus.ledger.api.v3.FromDataInstances.given
 import scalus.ledger.api.v3.ScriptPurpose.*
-import scalus.prelude.Maybe.*
-import scalus.prelude.Prelude.given
-import scalus.prelude.{AssocMap, List}
+import scalus.prelude.given
+import scalus.prelude.*
 import scalus.sir.SIR
 import scalus.uplc.Program
 import scalus.utils.Utils
@@ -36,7 +35,7 @@ import scala.language.implicitConversions
 @Compile
 /** Minting policy script
   */
-object MintingPolicy {
+object MintingPolicy extends DataParameterizedValidator {
 
     case class MintingConfig(
         adminPubKeyHash: PubKeyHash,
@@ -58,36 +57,21 @@ object MintingPolicy {
     def mintingPolicy(
         adminPubKeyHash: PubKeyHash, // admin pub key hash
         tokenName: TokenName, // token name
-        ctx: ScriptContext
+        ownSymbol: CurrencySymbol,
+        tx: TxInfo
     ): Unit = {
-        // ensure that we are minting and get the PolicyId of the token we are minting
-        val ownSymbol = ctx.scriptInfo match
-            case ScriptInfo.MintingScript(curSymbol) => curSymbol
-            case _ => throw new IllegalArgumentException("Not a minting transaction")
-        val txInfo = ctx.txInfo
         // find the tokens minted by this policy id
-        AssocMap.lookup(txInfo.mint)(ownSymbol) match
-            case Just(mintedTokens) =>
-                AssocMap.toList(mintedTokens) match
-                    // there should be only one token with the given name
-                    case List.Cons((tokName, _), tail) =>
-                        tail match
-                            case List.Nil =>
-                                if tokName == tokenName then ()
-                                else throw new IllegalArgumentException("Token name not found")
-                            case _ =>
-                                throw new IllegalArgumentException("Multiple tokens found")
-                    case _ =>
-                        throw new IllegalArgumentException(
-                          "Tokens not found or multiple tokens found"
-                        )
-            case Nothing =>
-                // should not happen on-chain
-                throw new IllegalArgumentException("Tokens not found")
+        val mintedTokens = tx.mint.lookup(ownSymbol).getOrFail("Tokens not found")
+        mintedTokens.toList match
+            // there should be only one token with the given name
+            case List.Cons((tokName, _), tail) =>
+                tail match
+                    case List.Nil => require(tokName == tokenName, "Token name not found")
+                    case _        => fail("Multiple tokens found")
+            case _ => fail("Tokens not found or multiple tokens found")
 
         // only admin can mint or burn tokens
-        List.findOrFail(txInfo.signatories): signatory =>
-            signatory.hash == adminPubKeyHash.hash
+        require(tx.signatories.contains(adminPubKeyHash), "Not signed by admin")
     }
 
     /** Minting policy validator
@@ -100,16 +84,20 @@ object MintingPolicy {
       * @param ctxData
       *   context data
       */
-    def mintingPolicyValidator(config: Data)(ctxData: Data): Unit = {
-        // deserialize the context from Data to ScriptContext
-        val ctx = ctxData.to[ScriptContext]
-        val mintingConfig = config.to[MintingConfig]
-        mintingPolicy(mintingConfig.adminPubKeyHash, mintingConfig.tokenName, ctx)
+    override def mint(
+        param: Datum,
+        redeemer: Datum,
+        currencySymbol: CurrencySymbol,
+        tx: TxInfo
+    ): Unit = {
+        val mintingConfig = param.to[MintingConfig]
+        mintingPolicy(mintingConfig.adminPubKeyHash, mintingConfig.tokenName, currencySymbol, tx)
     }
+
 }
 
 object MintingPolicyGenerator {
-    val mintingPolicySIR: SIR = compile(MintingPolicy.mintingPolicyValidator)
+    val mintingPolicySIR: SIR = compile(MintingPolicy.validate)
     private val script = mintingPolicySIR.toUplcOptimized(generateErrorTraces = true).plutusV3
 
     def makeMintingPolicyScript(
