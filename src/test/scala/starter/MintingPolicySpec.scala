@@ -2,15 +2,12 @@ package starter
 
 import com.bloxbean.cardano.client.account.Account
 import scalus.*
-import scalus.builtin.ByteString.given
 import scalus.builtin.Data.toData
 import scalus.builtin.{ByteString, Data, PlatformSpecific, given}
 import scalus.ledger.api.v3.*
-import scalus.ledger.api.v3.ToDataInstances.given
 import scalus.prelude.*
 import scalus.testkit.ScalusTest
 import scalus.uplc.*
-import scalus.uplc.TermDSL.{*, given}
 import scalus.uplc.eval.*
 import starter.MintingPolicy.MintingConfig
 
@@ -39,7 +36,7 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
 
     test(s"validator size is ${mintingScript.script.flatEncoded.length} bytes") {
         val size = mintingScript.script.flatEncoded.length
-        assertEquals(size, 3697)
+        assertEquals(size, 3719)
     }
 
     test(
@@ -56,7 +53,7 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
         // run the minting policy script as a Plutus script
         assertEval(
           mintingScript.script $ ctx.toData,
-          Success(ExBudget.fromCpuAndMemory(cpu = 51405034, memory = 198443))
+          Success(ExBudget.fromCpuAndMemory(cpu = 51597034, memory = 199643))
         )
     }
 
@@ -103,7 +100,7 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
         ScriptContext(
           txInfo = TxInfo(
             inputs = List.Nil,
-            fee = BigInt("188021"),
+            fee = 188021,
             mint = mint,
             signatories = signatories,
             id = random[TxId]

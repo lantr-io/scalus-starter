@@ -1,7 +1,7 @@
-val scalusVersion = "0.9.0"
+val scalusVersion = "0.10.1"
 
 // Latest Scala 3 LTS version
-ThisBuild / scalaVersion := "3.3.5"
+ThisBuild / scalaVersion := "3.3.6"
 
 ThisBuild / scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked")
 
@@ -20,17 +20,17 @@ lazy val core = (project in file("."))
         "org.scalus" %% "scalus-testkit" % scalusVersion,
         "org.scalus" %% "scalus-bloxbean-cardano-client-lib" % scalusVersion,
         // Cardano Client library
-        "com.bloxbean.cardano" % "cardano-client-lib" % "0.6.4",
-        "com.bloxbean.cardano" % "cardano-client-backend-blockfrost" % "0.6.4",
+        "com.bloxbean.cardano" % "cardano-client-lib" % "0.6.6",
+        "com.bloxbean.cardano" % "cardano-client-backend-blockfrost" % "0.6.6",
         // Tapir for API definition
-        "com.softwaremill.sttp.tapir" %% "tapir-netty-server-sync" % "1.11.25",
-        "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % "1.11.25",
+        "com.softwaremill.sttp.tapir" %% "tapir-netty-server-sync" % "1.11.35",
+        "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % "1.11.35",
         // Argument parsing
         "com.monovore" %% "decline" % "2.5.0",
         "org.slf4j" % "slf4j-simple" % "2.0.17"
       ),
       libraryDependencies ++= Seq(
-        "org.scalameta" %% "munit" % "1.1.0" % Test,
+        "org.scalameta" %% "munit" % "1.1.1" % Test,
         "org.scalameta" %% "munit-scalacheck" % "1.1.0" % Test,
         "org.scalacheck" %% "scalacheck" % "1.18.1" % Test
       )
@@ -43,6 +43,8 @@ lazy val integration = (project in file("integration"))
       publish / skip := true,
       // test dependencies
       libraryDependencies ++= Seq(
-        "org.scalameta" %% "munit" % "1.1.0" % Test
+        "org.scalameta" %% "munit" % "1.1.1" % Test,
+        "org.scalameta" %% "munit-scalacheck" % "1.1.0" % Test,
+        "org.scalacheck" %% "scalacheck" % "1.18.1" % Test
       )
     )

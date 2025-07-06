@@ -3,29 +3,13 @@ package starter
 import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script
 import scalus.*
 import scalus.Compiler.compile
-import scalus.builtin.ByteString.StringInterpolators
-import scalus.builtin.Data.FromData
-import scalus.builtin.Data.ToData
-import scalus.builtin.Data.fromData
-import scalus.builtin.Data.toData
-import scalus.builtin.FromData
-import scalus.builtin.ToData
-import scalus.builtin.{ByteString, Data}
-import scalus.ledger.api.PlutusLedgerLanguage
-import scalus.ledger.api.v2.OutputDatum
+import scalus.builtin.Data.{FromData, ToData, toData}
+import scalus.builtin.{ByteString, Data, FromData, ToData}
 import scalus.ledger.api.v3.*
-import scalus.builtin.ToDataInstances.given
-import scalus.builtin.FromDataInstances.given
-import scalus.ledger.api.v1.FromDataInstances.given
-import scalus.ledger.api.v1.ToDataInstances.given
-import scalus.ledger.api.v3.FromDataInstances.given
 import scalus.ledger.api.v3.ScriptPurpose.*
-import scalus.prelude.given
-import scalus.prelude.*
+import scalus.prelude.{*, given}
 import scalus.sir.SIR
 import scalus.uplc.Program
-import scalus.utils.Utils
-import starter.MintingPolicy.MintingConfig
 
 import scala.language.implicitConversions
 
@@ -42,8 +26,8 @@ object MintingPolicy extends DataParameterizedValidator {
         tokenName: TokenName
     )
 
-    given FromData[MintingConfig] = FromData.deriveCaseClass[MintingConfig]
-    given ToData[MintingConfig] = ToData.deriveCaseClass[MintingConfig](0)
+    given FromData[MintingConfig] = FromData.derived
+    given ToData[MintingConfig] = ToData.derived
 
     /** Minting policy script
       *
@@ -51,17 +35,19 @@ object MintingPolicy extends DataParameterizedValidator {
       *   admin public key hash
       * @param tokenName
       *   token name to mint or burn
-      * @param ctx
-      *   [[ScriptContext]]
+      * @param ownSymbol
+      *   own currency symbol (minting policy id)
+      * @param tx
+      *   transaction information
       */
-    def mintingPolicy(
+    private def mintingPolicy(
         adminPubKeyHash: PubKeyHash, // admin pub key hash
         tokenName: TokenName, // token name
         ownSymbol: CurrencySymbol,
         tx: TxInfo
     ): Unit = {
         // find the tokens minted by this policy id
-        val mintedTokens = tx.mint.lookup(ownSymbol).getOrFail("Tokens not found")
+        val mintedTokens = tx.mint.get(ownSymbol).getOrFail("Tokens not found")
         mintedTokens.toList match
             // there should be only one token with the given name
             case List.Cons((tokName, _), tail) =>
@@ -74,16 +60,7 @@ object MintingPolicy extends DataParameterizedValidator {
         require(tx.signatories.contains(adminPubKeyHash), "Not signed by admin")
     }
 
-    /** Minting policy validator
-      *
-      * The validator is parameterized by the [[MintingConfig]] which is passed as [[Data]] before
-      * the validator is published on-chain.
-      *
-      * @param config
-      *   minting policy configuration
-      * @param ctxData
-      *   context data
-      */
+    /** Minting policy validator */
     override def mint(
         param: Datum,
         redeemer: Datum,
@@ -104,8 +81,6 @@ object MintingPolicyGenerator {
         adminPubKeyHash: PubKeyHash,
         tokenName: TokenName
     ): MintingPolicyScript = {
-        import scalus.uplc.TermDSL.{*, given}
-
         val config = MintingPolicy
             .MintingConfig(adminPubKeyHash = adminPubKeyHash, tokenName = tokenName)
         MintingPolicyScript(script = script $ config.toData)
