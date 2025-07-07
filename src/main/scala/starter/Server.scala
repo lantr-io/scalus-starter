@@ -194,7 +194,13 @@ class Server(ctx: AppCtx):
         .fromEndpoints[[X] =>> X](apiEndpoints.map(_.endpoint), "Token Minter", "0.1")
 
     private def mintTokens(amount: Long): Either[String, String] =
-        txBuilder.submitMintingTx(amount)
+        val result = txBuilder.submitMintingTx(amount)
+        result match
+            case Left(value) =>
+                println(s"Error minting tokens: $value")
+            case Right(value) =>
+                println(s"Tokens minted successfully: $value")
+        result
 
     def start(): Unit =
         NettySyncServer()
