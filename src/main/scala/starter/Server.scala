@@ -39,7 +39,7 @@ case class AppCtx(
     lazy val tokenNameByteString: ByteString = ByteString.fromString(tokenName)
     // combined minting script hash and token name
     lazy val unitName: String = (mintingScript.scriptHash ++ tokenNameByteString).toHex
-    lazy val mintingScript: MintingPolicyScript =
+    lazy val mintingScript: MintingScript =
         MintingPolicyGenerator.makeMintingPolicyScript(pubKeyHash, tokenNameByteString)
 }
 

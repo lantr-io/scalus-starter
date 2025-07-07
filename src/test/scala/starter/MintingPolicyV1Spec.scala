@@ -1,24 +1,20 @@
 package starter
 
 import com.bloxbean.cardano.client.account.Account
+import org.scalacheck.Arbitrary
 import scalus.*
 import scalus.builtin.Data.toData
 import scalus.builtin.{ByteString, Data, PlatformSpecific, given}
-import scalus.ledger.api.v1.Value.*
-import scalus.ledger.api.v3.*
+import scalus.ledger.api.v1.*
 import scalus.prelude.*
+import scalus.ledger.api.v1.Value.*
 import scalus.testkit.ScalusTest
 import scalus.uplc.*
 import scalus.uplc.eval.*
 
 import scala.language.implicitConversions
 
-enum Expected {
-    case Success(budget: ExBudget)
-    case Failure(reason: String)
-}
-
-class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
+class MintingPolicyV1Spec extends munit.ScalaCheckSuite, ScalusTest {
     import Expected.*
 
     private val account = new Account()
@@ -34,7 +30,7 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
     private val config = MintingConfig(adminPubKeyHash, tokenName)
 
     private val mintingScript =
-        MintingPolicyGenerator.makeMintingPolicyScript(adminPubKeyHash, tokenName)
+        MintingPolicyV1Generator.makeMintingPolicyScript(adminPubKeyHash, tokenName)
 
     test("should fail when minted token name is not correct") {
         val wrongTokenName = tokenName ++ ByteString.fromString("extra")
@@ -44,10 +40,10 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
         )
 
         interceptMessage[Exception]("Token name not found") {
-            MintingPolicy.validate(config.toData)(ctx.toData)
+            MintingPolicyV1.validate(config.toData)(Data.unit, ctx.toData)
         }
 
-        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+        assertEval(mintingScript.script $ Data.unit $ ctx.toData, Failure("Error evaluated"))
     }
 
     test("should fail when extra tokens are minted/burned") {
@@ -58,10 +54,10 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
         )
 
         interceptMessage[Exception]("Multiple tokens found") {
-            MintingPolicy.validate(config.toData)(ctx.toData)
+            MintingPolicyV1.validate(config.toData)(Data.unit, ctx.toData)
         }
 
-        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+        assertEval(mintingScript.script $ Data.unit $ ctx.toData, Failure("Error evaluated"))
     }
 
     test("should fail when admin signature is not provided") {
@@ -71,10 +67,10 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
         )
 
         interceptMessage[Exception]("Not signed by admin") {
-            MintingPolicy.validate(config.toData)(ctx.toData)
+            MintingPolicyV1.validate(config.toData)(Data.unit, ctx.toData)
         }
 
-        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+        assertEval(mintingScript.script $ Data.unit $ ctx.toData, Failure("Error evaluated"))
     }
 
     test("should fail when admin signature is not correct") {
@@ -84,10 +80,10 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
         )
 
         interceptMessage[Exception]("Not signed by admin") {
-            MintingPolicy.validate(config.toData)(ctx.toData)
+            MintingPolicyV1.validate(config.toData)(Data.unit, ctx.toData)
         }
 
-        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+        assertEval(mintingScript.script $ Data.unit $ ctx.toData, Failure("Error evaluated"))
     }
 
     test("should succeed when minted token name is correct and admin signature is correct") {
@@ -97,30 +93,34 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
         )
         // run the minting policy script as a Scala function
         // here you can use debugger to debug the minting policy script
-        MintingPolicy.validate(config.toData)(ctx.toData)
+        MintingPolicyV1.validate(config.toData)(Data.unit, ctx.toData)
         // run the minting policy script as a Plutus script
         assertEval(
-          mintingScript.script $ ctx.toData,
-          Success(ExBudget.fromCpuAndMemory(cpu = 51632920, memory = 199105))
+          mintingScript.script $ Data.unit $ ctx.toData,
+          Success(ExBudget.fromCpuAndMemory(cpu = 42863257, memory = 181337))
         )
     }
 
-    test(s"validator size is 3674 bytes") {
+    test(s"validator size is 1967 bytes") {
         val size = mintingScript.script.cborEncoded.length
-        assertEquals(size, 3674)
+        assertEquals(size, 1967)
     }
 
     private def makeScriptContext(mint: Value, signatories: List[PubKeyHash]) =
         ScriptContext(
           txInfo = TxInfo(
             inputs = List.Nil,
-            fee = 188021,
+            outputs = List.Nil,
+            fee = Value.lovelace(188021),
             mint = mint,
+            dcert = List.Nil,
+            withdrawals = List.Nil,
+            validRange = Interval.always,
             signatories = signatories,
+            data = List.Nil,
             id = random[TxId]
           ),
-          redeemer = Data.unit,
-          scriptInfo = ScriptInfo.MintingScript(mintingScript.scriptHash)
+          purpose = ScriptPurpose.Minting(mintingScript.scriptHash)
         )
 
     private def assertEval(p: Program, expected: Expected): Unit = {
@@ -132,4 +132,5 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
                 assertEquals(result.exception.getMessage, expected)
             case _ => fail(s"Unexpected result: $result, expected: $expected")
     }
+    private given arbTxId: Arbitrary[TxId] = Arbitrary(genByteStringOfN(32).map(TxId.apply))
 }

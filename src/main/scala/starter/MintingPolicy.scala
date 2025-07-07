@@ -1,11 +1,14 @@
 package starter
 
-import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script
+import com.bloxbean.cardano.client.plutus.spec.{PlutusScript, PlutusV3Script}
 import scalus.*
 import scalus.Compiler.compile
 import scalus.builtin.Data.{FromData, ToData, toData}
 import scalus.builtin.{ByteString, Data, FromData, ToData}
 import scalus.ledger.api.v3.*
+import scalus.builtin.FromDataInstances.given
+import scalus.ledger.api.v1.FromDataInstances.given
+import scalus.ledger.api.v3.FromDataInstances.given
 import scalus.ledger.api.v3.ScriptPurpose.*
 import scalus.prelude.{*, given}
 import scalus.sir.SIR
@@ -13,21 +16,23 @@ import scalus.uplc.Program
 
 import scala.language.implicitConversions
 
+case class MintingConfig(
+    adminPubKeyHash: PubKeyHash,
+    tokenName: TokenName
+)
+
+@Compile
+object MintingConfig {
+    given FromData[MintingConfig] = FromData.derived
+    given ToData[MintingConfig] = ToData.derived
+}
+
 /* This annotation is used to generate the Scalus Intermediate Representation (SIR)
    for the code in the annotated object.
  */
 @Compile
-/** Minting policy script
-  */
+/** Minting policy script */
 object MintingPolicy extends DataParameterizedValidator {
-
-    case class MintingConfig(
-        adminPubKeyHash: PubKeyHash,
-        tokenName: TokenName
-    )
-
-    given FromData[MintingConfig] = FromData.derived
-    given ToData[MintingConfig] = ToData.derived
 
     /** Minting policy script
       *
@@ -81,19 +86,21 @@ object MintingPolicyGenerator {
         adminPubKeyHash: PubKeyHash,
         tokenName: TokenName
     ): MintingPolicyScript = {
-        val config = MintingPolicy
-            .MintingConfig(adminPubKeyHash = adminPubKeyHash, tokenName = tokenName)
+        val config = MintingConfig(adminPubKeyHash = adminPubKeyHash, tokenName = tokenName)
         MintingPolicyScript(script = script $ config.toData)
     }
 }
 
-class MintingPolicyScript(val script: Program) {
+trait MintingScript {
+    def plutusScript: PlutusScript
+    def scriptHash: ByteString = ByteString.fromArray(plutusScript.getScriptHash)
+}
+
+class MintingPolicyScript(val script: Program) extends MintingScript {
     lazy val plutusScript: PlutusV3Script = PlutusV3Script
         .builder()
         .`type`("PlutusScriptV3")
         .cborHex(script.doubleCborHex)
         .build()
         .asInstanceOf[PlutusV3Script]
-
-    lazy val scriptHash: ByteString = ByteString.fromArray(plutusScript.getScriptHash)
 }
