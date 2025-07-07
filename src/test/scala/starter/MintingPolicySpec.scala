@@ -28,26 +28,73 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
 
     private val tokenName = ByteString.fromString("CO2 Tonne")
 
-    private val pubKeyHash: PubKeyHash = PubKeyHash(
+    private val adminPubKeyHash: PubKeyHash = PubKeyHash(
       ByteString.fromArray(account.hdKeyPair().getPublicKey.getKeyHash)
     )
 
-    private val mintingScript =
-        MintingPolicyGenerator.makeMintingPolicyScript(pubKeyHash, tokenName)
+    private val config = MintingConfig(adminPubKeyHash, tokenName)
 
-    test(s"validator size is ${mintingScript.script.flatEncoded.length} bytes") {
-        val size = mintingScript.script.flatEncoded.length
-        assertEquals(size, 3719)
+    private val mintingScript =
+        MintingPolicyGenerator.makeMintingPolicyScript(adminPubKeyHash, tokenName)
+
+    test("should fail when minted token name is not correct") {
+        val wrongTokenName = tokenName ++ ByteString.fromString("extra")
+        val ctx = makeScriptContext(
+          mint = Value(mintingScript.scriptHash, wrongTokenName, 1000),
+          signatories = List(adminPubKeyHash)
+        )
+
+        interceptMessage[IllegalArgumentException]("Token name not found"):
+            MintingPolicy.validate(config.toData)(ctx.toData)
+
+        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
     }
 
-    test(
-      "minting should succeed when minted token name is correct and admin signature is correct"
-    ) {
+    test("should fail when extra tokens are minted/burned") {
+        val ctx = makeScriptContext(
+          mint = Value(mintingScript.scriptHash, tokenName, 1000) + Value(
+            mintingScript.scriptHash,
+            ByteString.fromString("Extra"),
+            1000
+          ),
+          signatories = List(adminPubKeyHash)
+        )
+
+        interceptMessage[RuntimeException]("Multiple tokens found"):
+            MintingPolicy.validate(config.toData)(ctx.toData)
+
+        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+    }
+
+    test("should fail when admin signature is not provided") {
         val ctx = makeScriptContext(
           mint = Value(mintingScript.scriptHash, tokenName, 1000),
-          signatories = List(pubKeyHash)
+          signatories = List.Nil
         )
-        val config = MintingConfig(pubKeyHash, tokenName)
+
+        interceptMessage[Exception]("Not signed by admin"):
+            MintingPolicy.validate(config.toData)(ctx.toData)
+
+        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+    }
+
+    test("should fail when admin signature is not correct") {
+        val ctx = makeScriptContext(
+          mint = Value(mintingScript.scriptHash, tokenName, 1000),
+          signatories = List(PubKeyHash(crypto.blake2b_224(ByteString.fromString("wrong"))))
+        )
+
+        interceptMessage[Exception]("Not signed by admin"):
+            MintingPolicy.validate(config.toData)(ctx.toData)
+
+        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+    }
+
+    test("should succeed when minted token name is correct and admin signature is correct") {
+        val ctx = makeScriptContext(
+          mint = Value(mintingScript.scriptHash, tokenName, 1000),
+          signatories = List(adminPubKeyHash)
+        )
         // run the minting policy script as a Scala function
         // here you can use debugger to debug the minting policy script
         MintingPolicy.validate(config.toData)(ctx.toData)
@@ -58,60 +105,9 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
         )
     }
 
-    test("minting should fail when minted token name is not correct") {
-        val ctx = makeScriptContext(
-          mint = Value(mintingScript.scriptHash, tokenName ++ ByteString.fromString("extra"), 1000),
-          signatories = List(pubKeyHash)
-        )
-        val config = MintingConfig(pubKeyHash, tokenName)
-
-        interceptMessage[IllegalArgumentException]("Token name not found"):
-            MintingPolicy.validate(config.toData)(ctx.toData)
-
-        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
-    }
-
-    test("minting should fail when extra tokens are minted/burned") {
-        val ctx = makeScriptContext(
-          mint = Value(mintingScript.scriptHash, tokenName, 1000) + Value(
-            mintingScript.scriptHash,
-            ByteString.fromString("Extra"),
-            1000
-          ),
-          signatories = List(pubKeyHash)
-        )
-        val config = MintingConfig(pubKeyHash, tokenName)
-
-        interceptMessage[RuntimeException]("Multiple tokens found"):
-            MintingPolicy.validate(config.toData)(ctx.toData)
-
-        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
-    }
-
-    test("minting should fail when admin signature is not provided") {
-        val ctx = makeScriptContext(
-          mint = Value(mintingScript.scriptHash, tokenName, 1000),
-          signatories = List.Nil
-        )
-        val config = MintingConfig(pubKeyHash, tokenName)
-
-        interceptMessage[Exception]("Not signed by admin"):
-            MintingPolicy.validate(config.toData)(ctx.toData)
-
-        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
-    }
-
-    test("minting should fail when admin signature is not correct") {
-        val ctx = makeScriptContext(
-          mint = Value(mintingScript.scriptHash, tokenName, 1000),
-          signatories = List(PubKeyHash(crypto.blake2b_224(ByteString.fromString("wrong"))))
-        )
-        val config = MintingConfig(pubKeyHash, tokenName)
-
-        interceptMessage[Exception]("Not signed by admin"):
-            MintingPolicy.validate(config.toData)(ctx.toData)
-
-        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+    test(s"validator size is 3708 bytes") {
+        val size = mintingScript.script.cborEncoded.length
+        assertEquals(size, 3708)
     }
 
     private def makeScriptContext(mint: Value, signatories: List[PubKeyHash]) =

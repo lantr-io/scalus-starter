@@ -54,7 +54,7 @@ object MintingPolicy extends DataParameterizedValidator {
                 tail match
                     case List.Nil => require(tokName == tokenName, "Token name not found")
                     case _        => fail("Multiple tokens found")
-            case _ => fail("Tokens not found or multiple tokens found")
+            case _ => fail("Impossible: no tokens found")
 
         // only admin can mint or burn tokens
         require(tx.signatories.contains(adminPubKeyHash), "Not signed by admin")
