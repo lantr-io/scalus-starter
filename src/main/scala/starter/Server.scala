@@ -63,9 +63,7 @@ object AppCtx {
         )
     }
 
-    def yaciDevKit(
-        tokenName: String
-    ): AppCtx = {
+    def yaciDevKit(tokenName: String): AppCtx = {
         val url = "http://localhost:8080/api/v1/"
         val network = new Network(0, 42)
         val mnemonic =

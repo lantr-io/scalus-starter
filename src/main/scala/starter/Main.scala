@@ -29,7 +29,8 @@ object Cli:
         println(MintingPolicyGenerator.mintingPolicySIR.showHighlighted)
     }
 
-    private def start(): Unit = {
+    @main
+    def start(): Unit = {
         // Start the server
         val blockfrostApiKey = System.getenv("BLOCKFROST_API_KEY") match
             case null   => sys.error("BLOCKFROST_API_KEY environment variable is not set")

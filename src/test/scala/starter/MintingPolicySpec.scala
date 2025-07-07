@@ -6,6 +6,7 @@ import scalus.builtin.Data.toData
 import scalus.builtin.{ByteString, Data, PlatformSpecific, given}
 import scalus.ledger.api.v3.*
 import scalus.prelude.*
+import scalus.ledger.api.v1.Value.*
 import scalus.testkit.ScalusTest
 import scalus.uplc.*
 import scalus.uplc.eval.*
@@ -70,14 +71,18 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
         assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
     }
 
-    test("minting should fail when admin signature is not correct") {
+    test("minting should fail when extra tokens are minted/burned") {
         val ctx = makeScriptContext(
-          mint = Value(mintingScript.scriptHash, tokenName, 1000),
-          signatories = List(PubKeyHash(crypto.blake2b_224(ByteString.fromString("wrong"))))
+          mint = Value(mintingScript.scriptHash, tokenName, 1000) + Value(
+            mintingScript.scriptHash,
+            ByteString.fromString("Extra"),
+            1000
+          ),
+          signatories = List(pubKeyHash)
         )
         val config = MintingConfig(pubKeyHash, tokenName)
 
-        interceptMessage[Exception]("Not signed by admin"):
+        interceptMessage[RuntimeException]("Multiple tokens found"):
             MintingPolicy.validate(config.toData)(ctx.toData)
 
         assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
@@ -87,6 +92,19 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
         val ctx = makeScriptContext(
           mint = Value(mintingScript.scriptHash, tokenName, 1000),
           signatories = List.Nil
+        )
+        val config = MintingConfig(pubKeyHash, tokenName)
+
+        interceptMessage[Exception]("Not signed by admin"):
+            MintingPolicy.validate(config.toData)(ctx.toData)
+
+        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+    }
+
+    test("minting should fail when admin signature is not correct") {
+        val ctx = makeScriptContext(
+          mint = Value(mintingScript.scriptHash, tokenName, 1000),
+          signatories = List(PubKeyHash(crypto.blake2b_224(ByteString.fromString("wrong"))))
         )
         val config = MintingConfig(pubKeyHash, tokenName)
 
