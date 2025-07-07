@@ -44,6 +44,18 @@ object Cli:
         Server(appCtx).start()
     }
 
+    @main
+    def uzhServer(): Unit = {
+        // Start the server
+        val mnemonic = System.getenv("MNEMONIC") match
+            case null => sys.error("MNEMONIC environment variable is not set")
+            case mnemonic => mnemonic
+
+        val appCtx = AppCtx.uzhCtx(mnemonic, "CO2 Tonne")
+        println("Starting the server...")
+        Server(appCtx).start()
+    }
+
     @main def main(args: String*): Unit = {
         command.parse(args) match
             case Left(help) => println(help)

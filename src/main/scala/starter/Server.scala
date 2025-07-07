@@ -63,6 +63,17 @@ object AppCtx {
         )
     }
 
+    def uzhCtx(mnemonic: String, tokenName: String): AppCtx = {
+        val url = "http://130.60.24.200:3000"
+        val network = new Network(0, 0)
+        new AppCtx(
+          network,
+          new Account(network, mnemonic),
+          new BFBackendService(url, ""),
+          tokenName
+        )
+    }
+
     def yaciDevKit(tokenName: String): AppCtx = {
         val url = "http://localhost:8080/api/v1/"
         val network = new Network(0, 42)
@@ -103,10 +114,12 @@ class TxBuilder(ctx: AppCtx) {
       mode = EvaluatorMode.EVALUATE_AND_COMPUTE_COST
     )
 
+    private val address: String = account.getBaseAddress.getAddress
+
     def makeMintingTx(amount: Long): Either[String, Transaction] = {
         for
             utxo <- backendService.getUtxoService
-                .getUtxos(account.getBaseAddress.getAddress, 100, 1)
+                .getUtxos(address, 100, 1)
                 .toEither
 
             scriptTx = new ScriptTx()
@@ -114,10 +127,10 @@ class TxBuilder(ctx: AppCtx) {
                   ctx.mintingScript.plutusScript,
                   Asset.builder().name(ctx.tokenName).value(BigInteger.valueOf(amount)).build(),
                   PlutusData.unit(),
-                  account.getBaseAddress.getAddress
+                  address
                 )
                 .collectFrom(utxo)
-                .withChangeAddress(account.getBaseAddress.getAddress)
+                .withChangeAddress(address)
 
             signedTx = quickTxBuilder
                 .compose(scriptTx)
@@ -133,7 +146,7 @@ class TxBuilder(ctx: AppCtx) {
     def makeBurningTx(amount: Long): Either[String, Transaction] = {
         for
             utxo <- backendService.getUtxoService
-                .getUtxos(account.getBaseAddress.getAddress, ctx.unitName, 100, 1)
+                .getUtxos(address, ctx.unitName, 100, 1)
                 .toEither
 
             scriptTx = new ScriptTx()
@@ -141,10 +154,10 @@ class TxBuilder(ctx: AppCtx) {
                   ctx.mintingScript.plutusScript,
                   Asset.builder().name(ctx.tokenName).value(BigInteger.valueOf(amount)).build(),
                   PlutusData.unit(),
-                  account.getBaseAddress.getAddress
+                  address
                 )
                 .collectFrom(utxo)
-                .withChangeAddress(account.getBaseAddress.getAddress)
+                .withChangeAddress(address)
 
             signedTx = quickTxBuilder
                 .compose(scriptTx)
