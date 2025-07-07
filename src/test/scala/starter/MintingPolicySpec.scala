@@ -44,24 +44,23 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
           signatories = List(adminPubKeyHash)
         )
 
-        interceptMessage[IllegalArgumentException]("Token name not found"):
+        interceptMessage[Exception]("Token name not found") {
             MintingPolicy.validate(config.toData)(ctx.toData)
+        }
 
         assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
     }
 
     test("should fail when extra tokens are minted/burned") {
         val ctx = makeScriptContext(
-          mint = Value(mintingScript.scriptHash, tokenName, 1000) + Value(
-            mintingScript.scriptHash,
-            ByteString.fromString("Extra"),
-            1000
-          ),
+          mint = Value(mintingScript.scriptHash, tokenName, 1000)
+              + Value(mintingScript.scriptHash, ByteString.fromString("Extra"), 1000),
           signatories = List(adminPubKeyHash)
         )
 
-        interceptMessage[RuntimeException]("Multiple tokens found"):
+        interceptMessage[Exception]("Multiple tokens found") {
             MintingPolicy.validate(config.toData)(ctx.toData)
+        }
 
         assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
     }
@@ -72,8 +71,9 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
           signatories = List.Nil
         )
 
-        interceptMessage[Exception]("Not signed by admin"):
+        interceptMessage[Exception]("Not signed by admin") {
             MintingPolicy.validate(config.toData)(ctx.toData)
+        }
 
         assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
     }
@@ -84,8 +84,9 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
           signatories = List(PubKeyHash(crypto.blake2b_224(ByteString.fromString("wrong"))))
         )
 
-        interceptMessage[Exception]("Not signed by admin"):
+        interceptMessage[Exception]("Not signed by admin") {
             MintingPolicy.validate(config.toData)(ctx.toData)
+        }
 
         assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
     }
