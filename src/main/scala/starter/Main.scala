@@ -45,6 +45,14 @@ object Cli:
     }
 
     @main
+    def yaciDevKit(): Unit = {
+        // Start the server
+        val appCtx = AppCtx.yaciDevKit("CO2 Tonne")
+        println("Starting the server...")
+        Server(appCtx).start()
+    }
+
+    @main
     def uzhServer(): Unit = {
         // Start the server
         val mnemonic = System.getenv("MNEMONIC") match
