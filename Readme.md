@@ -52,17 +52,9 @@ reset
 
 in the devkit shell.
 
-### Building with scala-cli
+## Scalus Getting Started
 
-Run `scala-cli setup-ide .` to generate IDE configuration files.
-
-Run `scala-cli .` to compile and run the project.
-
-Run `scala-cli test .` to run the tests.
-
-## Scalus Tutorial
-
-[Read the tutorial](https://scalus.org/docs/Tutorial)
+[Read the tutorial](https://scalus.org/docs/get-started)
 
 ## Resources
 
