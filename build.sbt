@@ -1,3 +1,5 @@
+// val scalusVersion = "0.10.1+221-a5b6db75-SNAPSHOT"
+// val scalusVersion = "0.10.1+215-b9f4095d+20250707-1958-SNAPSHOT"
 val scalusVersion = "0.10.1"
 
 // Latest Scala 3 LTS version
@@ -29,6 +31,7 @@ lazy val core = (project in file("."))
         "com.monovore" %% "decline" % "2.5.0",
         "org.slf4j" % "slf4j-simple" % "2.0.17"
       ),
+      libraryDependencies += "com.lihaoyi" %% "requests" % "0.8.0",
       libraryDependencies ++= Seq(
         "org.scalameta" %% "munit" % "1.1.1" % Test,
         "org.scalameta" %% "munit-scalacheck" % "1.1.0" % Test,
@@ -42,6 +45,7 @@ lazy val integration = (project in file("integration"))
     .settings(
       publish / skip := true,
       // test dependencies
+      libraryDependencies += "com.lihaoyi" %% "requests" % "0.8.0",
       libraryDependencies ++= Seq(
         "org.scalameta" %% "munit" % "1.1.1" % Test,
         "org.scalameta" %% "munit-scalacheck" % "1.1.0" % Test,

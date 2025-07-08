@@ -1,6 +1,8 @@
 package starter
 
 import com.bloxbean.cardano.client.account.Account
+import com.bloxbean.cardano.client.api.TransactionEvaluator
+import com.bloxbean.cardano.client.api.impl.StaticTransactionEvaluator
 import com.bloxbean.cardano.client.api.model.ProtocolParams
 import com.bloxbean.cardano.client.api.model.Result
 import com.bloxbean.cardano.client.backend.api.BackendService
@@ -21,11 +23,15 @@ import scalus.bloxbean.ScalusTransactionEvaluator
 import scalus.bloxbean.SlotConfig
 import scalus.builtin.ByteString
 import scalus.ledger.api.v1.PubKeyHash
+
+import com.bloxbean.cardano.client.plutus.spec.ExUnits
 import sttp.tapir.*
 import sttp.tapir.server.netty.sync.NettySyncServer
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 
 import java.math.BigInteger
+import java.util
+import scala.util.Try
 
 case class AppCtx(
     network: Network,
@@ -40,7 +46,7 @@ case class AppCtx(
     // combined minting script hash and token name
     lazy val unitName: String = (mintingScript.scriptHash ++ tokenNameByteString).toHex
     lazy val mintingScript: MintingScript =
-        MintingPolicyGenerator.makeMintingPolicyScript(pubKeyHash, tokenNameByteString)
+        MintingPolicyV1Generator.makeMintingPolicyScript(pubKeyHash, tokenNameByteString)
 }
 
 object AppCtx {
@@ -135,7 +141,14 @@ class TxBuilder(ctx: AppCtx) {
             signedTx = quickTxBuilder
                 .compose(scriptTx)
                 // evaluate script cost using scalus
-                .withTxEvaluator(evaluator)
+//                .withTxEvaluator(evaluator)
+                .withTxEvaluator(
+                  new StaticTransactionEvaluator(
+                    util.List.of(
+                      new ExUnits(BigInteger.valueOf(10_000000), BigInteger.valueOf(1000_000000L))
+                    )
+                  )
+                )
                 .withSigner(SignerProviders.signerFrom(account))
                 .withRequiredSigners(account.getBaseAddress)
                 .feePayer(account.baseAddress())
@@ -170,11 +183,24 @@ class TxBuilder(ctx: AppCtx) {
         yield signedTx
     }
 
+    def submitTx(cbor: Array[Byte]): Either[String, String] = {
+        import requests.*
+        val result = Try(
+          post(
+            "http://130.60.24.200:8090/api/submit/tx",
+            data = cbor,
+            headers = Map("Content-Type" -> "application/cbor")
+          ).text()
+        ).toEither.left.map { e => e.getMessage }
+        result
+    }
+
     def submitMintingTx(amount: Long): Either[String, String] = {
         for
             signedTx <- makeMintingTx(amount)
             result = backendService.getTransactionService.submitTransaction(signedTx.serialize())
             r <- Either.cond(result.isSuccessful, result.getValue, result.getResponse)
+            // r <- submitTx(signedTx.serialize())
         yield r
     }
 }
