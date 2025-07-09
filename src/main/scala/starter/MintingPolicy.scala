@@ -6,9 +6,6 @@ import scalus.Compiler.compile
 import scalus.builtin.Data.{FromData, ToData, toData}
 import scalus.builtin.{ByteString, Data, FromData, ToData}
 import scalus.ledger.api.v3.*
-import scalus.builtin.FromDataInstances.given
-import scalus.ledger.api.v1.FromDataInstances.given
-import scalus.ledger.api.v3.FromDataInstances.given
 import scalus.ledger.api.v3.ScriptPurpose.*
 import scalus.prelude.{*, given}
 import scalus.sir.SIR

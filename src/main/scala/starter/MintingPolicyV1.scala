@@ -26,10 +26,10 @@ object MintingPolicyV1 {
             case ScriptPurpose.Minting(currencySymbol) =>
                 val mintingConfig = config.to[MintingConfig]
                 mintingPolicy(
-                    mintingConfig.adminPubKeyHash,
-                    mintingConfig.tokenName,
-                    currencySymbol,
-                    sc.txInfo
+                  mintingConfig.adminPubKeyHash,
+                  mintingConfig.tokenName,
+                  currencySymbol,
+                  sc.txInfo
                 )
             case _ =>
                 fail("Only for minting")
@@ -53,7 +53,7 @@ object MintingPolicyV1 {
         tx: TxInfo
     ): Unit = {
         // find the tokens minted by this policy id
-        val mintedTokens = tx.mint.lookup(ownSymbol).getOrFail("Tokens not found")
+        val mintedTokens = tx.mint.get(ownSymbol).getOrFail("Tokens not found")
         mintedTokens.toList match
             // there should be only one token with the given name
             case List.Cons((tokName, _), tail) =>

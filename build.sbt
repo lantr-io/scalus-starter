@@ -1,6 +1,7 @@
-// val scalusVersion = "0.10.1+221-a5b6db75-SNAPSHOT"
+val scalusVersion = "0.10.1+228-294456c3-SNAPSHOT"
 // val scalusVersion = "0.10.1+215-b9f4095d+20250707-1958-SNAPSHOT"
-val scalusVersion = "0.10.1"
+//val scalusVersion = "0.10.1"
+resolvers += Resolver.sonatypeCentralSnapshots
 
 // Latest Scala 3 LTS version
 ThisBuild / scalaVersion := "3.3.6"

@@ -1,37 +1,30 @@
 package starter
 
 import com.bloxbean.cardano.client.account.Account
-import com.bloxbean.cardano.client.api.TransactionEvaluator
-import com.bloxbean.cardano.client.api.impl.StaticTransactionEvaluator
-import com.bloxbean.cardano.client.api.model.ProtocolParams
-import com.bloxbean.cardano.client.api.model.Result
-import com.bloxbean.cardano.client.backend.api.BackendService
-import com.bloxbean.cardano.client.backend.api.DefaultUtxoSupplier
+import com.bloxbean.cardano.client.api.model.{ProtocolParams, Result}
+import com.bloxbean.cardano.client.backend.api.{
+    BackendService,
+    DefaultUtxoSupplier,
+    TransactionService
+}
 import com.bloxbean.cardano.client.backend.blockfrost.common.Constants
-import com.bloxbean.cardano.client.backend.blockfrost.service.BFBackendService
-import com.bloxbean.cardano.client.common.model.Network
-import com.bloxbean.cardano.client.common.model.Networks
+import com.bloxbean.cardano.client.backend.blockfrost.service.{
+    BFBackendService,
+    BFTransactionService
+}
+import com.bloxbean.cardano.client.common.model.{Network, Networks}
 import com.bloxbean.cardano.client.function.helper.SignerProviders
 import com.bloxbean.cardano.client.plutus.spec.PlutusData
-import com.bloxbean.cardano.client.quicktx.QuickTxBuilder
-import com.bloxbean.cardano.client.quicktx.ScriptTx
-import com.bloxbean.cardano.client.transaction.spec.Asset
-import com.bloxbean.cardano.client.transaction.spec.Transaction
-import scalus.bloxbean.EvaluatorMode
-import scalus.bloxbean.NoScriptSupplier
-import scalus.bloxbean.ScalusTransactionEvaluator
-import scalus.bloxbean.SlotConfig
+import com.bloxbean.cardano.client.quicktx.{QuickTxBuilder, ScriptTx}
+import com.bloxbean.cardano.client.transaction.spec.{Asset, Transaction}
+import scalus.bloxbean.{EvaluatorMode, NoScriptSupplier, ScalusTransactionEvaluator, SlotConfig}
 import scalus.builtin.ByteString
 import scalus.ledger.api.v1.PubKeyHash
-
-import com.bloxbean.cardano.client.plutus.spec.ExUnits
 import sttp.tapir.*
 import sttp.tapir.server.netty.sync.NettySyncServer
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 
 import java.math.BigInteger
-import java.util
-import scala.util.Try
 
 case class AppCtx(
     network: Network,
@@ -47,6 +40,28 @@ case class AppCtx(
     lazy val unitName: String = (mintingScript.scriptHash ++ tokenNameByteString).toHex
     lazy val mintingScript: MintingScript =
         MintingPolicyV1Generator.makeMintingPolicyScript(pubKeyHash, tokenNameByteString)
+}
+
+class UZHBackendService(url: String) extends BFBackendService(url, "") {
+    override def getTransactionService: TransactionService = new BFTransactionService(url, "") {
+        override def submitTransaction(cborData: Array[Byte]): Result[String] = {
+            import requests.*
+            val response =
+                post(
+                  "http://130.60.24.200:8090/api/submit/tx",
+                  data = cborData,
+                  headers = Map("Content-Type" -> "application/cbor"),
+                  check = false
+                )
+
+            Result
+                .create(response.is2xx, response.statusMessage)
+                .code(response.statusCode)
+                .asInstanceOf[Result[String]]
+                .withValue(response.text())
+                .asInstanceOf[Result[String]]
+        }
+    }
 }
 
 object AppCtx {
@@ -70,12 +85,11 @@ object AppCtx {
     }
 
     def uzhCtx(mnemonic: String, tokenName: String): AppCtx = {
-        val url = "http://130.60.24.200:3000"
         val network = new Network(0, 0)
         new AppCtx(
           network,
           new Account(network, mnemonic),
-          new BFBackendService(url, ""),
+          new UZHBackendService("http://130.60.24.200:3000"),
           tokenName
         )
     }
@@ -141,14 +155,7 @@ class TxBuilder(ctx: AppCtx) {
             signedTx = quickTxBuilder
                 .compose(scriptTx)
                 // evaluate script cost using scalus
-//                .withTxEvaluator(evaluator)
-                .withTxEvaluator(
-                  new StaticTransactionEvaluator(
-                    util.List.of(
-                      new ExUnits(BigInteger.valueOf(10_000000), BigInteger.valueOf(1000_000000L))
-                    )
-                  )
-                )
+                .withTxEvaluator(evaluator)
                 .withSigner(SignerProviders.signerFrom(account))
                 .withRequiredSigners(account.getBaseAddress)
                 .feePayer(account.baseAddress())
@@ -183,24 +190,11 @@ class TxBuilder(ctx: AppCtx) {
         yield signedTx
     }
 
-    def submitTx(cbor: Array[Byte]): Either[String, String] = {
-        import requests.*
-        val result = Try(
-          post(
-            "http://130.60.24.200:8090/api/submit/tx",
-            data = cbor,
-            headers = Map("Content-Type" -> "application/cbor")
-          ).text()
-        ).toEither.left.map { e => e.getMessage }
-        result
-    }
-
     def submitMintingTx(amount: Long): Either[String, String] = {
         for
             signedTx <- makeMintingTx(amount)
             result = backendService.getTransactionService.submitTransaction(signedTx.serialize())
             r <- Either.cond(result.isSuccessful, result.getValue, result.getResponse)
-            // r <- submitTx(signedTx.serialize())
         yield r
     }
 }
