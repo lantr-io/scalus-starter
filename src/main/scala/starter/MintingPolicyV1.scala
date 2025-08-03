@@ -3,8 +3,8 @@ package starter
 import com.bloxbean.cardano.client.plutus.spec.{PlutusScript, PlutusV1Script}
 import scalus.*
 import scalus.Compiler.compile
+import scalus.builtin.Data
 import scalus.builtin.Data.toData
-import scalus.builtin.{ByteString, Data}
 import scalus.ledger.api.v1.*
 import scalus.prelude.{*, given}
 import scalus.sir.SIR

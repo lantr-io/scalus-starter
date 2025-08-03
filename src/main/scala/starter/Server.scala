@@ -55,7 +55,10 @@ class UZHBackendService(url: String) extends BFBackendService(url, "") {
                 )
 
             Result
-                .create(response.is2xx, response.statusMessage)
+                .create(
+                  response.is2xx,
+                  StatusMessages.byStatusCode.getOrElse(response.statusCode, "")
+                )
                 .code(response.statusCode)
                 .asInstanceOf[Result[String]]
                 .withValue(response.text())

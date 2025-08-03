@@ -1,4 +1,4 @@
-val scalusVersion = "0.10.3"
+val scalusVersion = "0.11.0"
 // val scalusVersion = "0.10.1+215-b9f4095d+20250707-1958-SNAPSHOT"
 //val scalusVersion = "0.10.1"
 resolvers += Resolver.sonatypeCentralSnapshots
@@ -26,13 +26,13 @@ lazy val core = (project in file("."))
         "com.bloxbean.cardano" % "cardano-client-lib" % "0.6.6",
         "com.bloxbean.cardano" % "cardano-client-backend-blockfrost" % "0.6.6",
         // Tapir for API definition
-        "com.softwaremill.sttp.tapir" %% "tapir-netty-server-sync" % "1.11.35",
-        "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % "1.11.35",
+        "com.softwaremill.sttp.tapir" %% "tapir-netty-server-sync" % "1.11.40",
+        "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % "1.11.40",
         // Argument parsing
         "com.monovore" %% "decline" % "2.5.0",
         "org.slf4j" % "slf4j-simple" % "2.0.17"
       ),
-      libraryDependencies += "com.lihaoyi" %% "requests" % "0.8.0",
+      libraryDependencies += "com.lihaoyi" %% "requests" % "0.9.0",
       libraryDependencies ++= Seq(
         "org.scalameta" %% "munit" % "1.1.1" % Test,
         "org.scalameta" %% "munit-scalacheck" % "1.1.0" % Test,
@@ -46,7 +46,7 @@ lazy val integration = (project in file("integration"))
     .settings(
       publish / skip := true,
       // test dependencies
-      libraryDependencies += "com.lihaoyi" %% "requests" % "0.8.0",
+      libraryDependencies += "com.lihaoyi" %% "requests" % "0.9.0",
       libraryDependencies ++= Seq(
         "org.scalameta" %% "munit" % "1.1.1" % Test,
         "org.scalameta" %% "munit-scalacheck" % "1.1.0" % Test,

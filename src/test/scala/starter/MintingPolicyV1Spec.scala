@@ -97,13 +97,13 @@ class MintingPolicyV1Spec extends munit.ScalaCheckSuite, ScalusTest {
         // run the minting policy script as a Plutus script
         assertEval(
           mintingScript.script $ Data.unit $ ctx.toData,
-          Success(ExBudget.fromCpuAndMemory(cpu = 42555371, memory = 180175))
+          Success(ExBudget.fromCpuAndMemory(cpu = 43016601, memory = 181639))
         )
     }
 
-    test(s"validator size is 2016 bytes") {
+    test(s"validator size is 1983 bytes") {
         val size = mintingScript.script.cborEncoded.length
-        assertEquals(size, 2016)
+        assertEquals(size, 1983)
     }
 
     private def makeScriptContext(mint: Value, signatories: List[PubKeyHash]) =

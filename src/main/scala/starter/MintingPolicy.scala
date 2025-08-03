@@ -2,7 +2,7 @@ package starter
 
 import com.bloxbean.cardano.client.plutus.spec.{PlutusScript, PlutusV3Script}
 import scalus.*
-import scalus.Compiler.compile
+import scalus.Compiler.{Options, compile}
 import scalus.builtin.Data.{FromData, ToData, toData}
 import scalus.builtin.{ByteString, Data, FromData, ToData}
 import scalus.ledger.api.v3.*
@@ -76,7 +76,16 @@ object MintingPolicy extends DataParameterizedValidator {
 }
 
 object MintingPolicyGenerator {
+    // use Scalus new more efficient compiler backend to compile the minting policy
+    inline given Options =
+        Options(
+          targetLoweringBackend = Compiler.TargetLoweringBackend.SirToUplcV3Lowering,
+          generateErrorTraces = true,
+          optimizeUplc = true,
+          debug = false
+        )
     val mintingPolicySIR: SIR = compile(MintingPolicy.validate)
+
     private val script = mintingPolicySIR.toUplcOptimized(generateErrorTraces = true).plutusV3
 
     def makeMintingPolicyScript(
