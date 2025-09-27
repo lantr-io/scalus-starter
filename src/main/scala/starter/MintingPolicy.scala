@@ -49,7 +49,7 @@ object MintingPolicy extends DataParameterizedValidator {
         tx: TxInfo
     ): Unit = {
         // find the tokens minted by this policy id
-        val mintedTokens = tx.mint.get(ownSymbol).getOrFail("Tokens not found")
+        val mintedTokens = tx.mint.toSortedMap.get(ownSymbol).getOrFail("Tokens not found")
         mintedTokens.toList match
             // there should be only one token with the given name
             case List.Cons((tokName, _), tail) =>
@@ -86,7 +86,7 @@ object MintingPolicyGenerator {
         )
     val mintingPolicySIR: SIR = compile(MintingPolicy.validate)
 
-    private val script = mintingPolicySIR.toUplcOptimized(generateErrorTraces = true).plutusV3
+    val script = mintingPolicySIR.toUplcOptimized(generateErrorTraces = true).plutusV3
 
     def makeMintingPolicyScript(
         adminPubKeyHash: PubKeyHash,
