@@ -1,9 +1,9 @@
-val scalusVersion = "0.12.0"
+val scalusVersion = "0.13.0"
 
 resolvers += Resolver.sonatypeCentralSnapshots
 
 // Latest Scala 3 LTS version
-ThisBuild / scalaVersion := "3.3.6"
+ThisBuild / scalaVersion := "3.3.7"
 
 ThisBuild / scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked")
 
@@ -25,8 +25,8 @@ lazy val core = (project in file("."))
         "com.bloxbean.cardano" % "cardano-client-lib" % "0.7.0",
         "com.bloxbean.cardano" % "cardano-client-backend-blockfrost" % "0.7.0",
         // Tapir for API definition
-        "com.softwaremill.sttp.tapir" %% "tapir-netty-server-sync" % "1.11.44",
-        "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % "1.11.44",
+        "com.softwaremill.sttp.tapir" %% "tapir-netty-server-sync" % "1.11.50",
+        "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % "1.11.50",
         // Argument parsing
         "com.monovore" %% "decline" % "2.5.0",
         "org.slf4j" % "slf4j-simple" % "2.0.17"

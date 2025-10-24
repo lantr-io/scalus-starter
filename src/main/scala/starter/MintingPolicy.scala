@@ -37,7 +37,7 @@ object MintingPolicy extends DataParameterizedValidator {
       *   admin public key hash
       * @param tokenName
       *   token name to mint or burn
-      * @param ownSymbol
+      * @param ownPolicyId
       *   own currency symbol (minting policy id)
       * @param tx
       *   transaction information
@@ -45,11 +45,11 @@ object MintingPolicy extends DataParameterizedValidator {
     private def mintingPolicy(
         adminPubKeyHash: PubKeyHash, // admin pub key hash
         tokenName: TokenName, // token name
-        ownSymbol: CurrencySymbol,
+        ownPolicyId: PolicyId,
         tx: TxInfo
     ): Unit = {
         // find the tokens minted by this policy id
-        val mintedTokens = tx.mint.toSortedMap.get(ownSymbol).getOrFail("Tokens not found")
+        val mintedTokens = tx.mint.toSortedMap.get(ownPolicyId).getOrFail("Tokens not found")
         mintedTokens.toList match
             // there should be only one token with the given name
             case List.Cons((tokName, _), tail) =>
@@ -66,11 +66,11 @@ object MintingPolicy extends DataParameterizedValidator {
     override def mint(
         param: Datum,
         redeemer: Datum,
-        currencySymbol: CurrencySymbol,
+        policyId: PolicyId,
         tx: TxInfo
     ): Unit = {
         val mintingConfig = param.to[MintingConfig]
-        mintingPolicy(mintingConfig.adminPubKeyHash, mintingConfig.tokenName, currencySymbol, tx)
+        mintingPolicy(mintingConfig.adminPubKeyHash, mintingConfig.tokenName, policyId, tx)
     }
 
 }
