@@ -2,23 +2,17 @@ package starter
 
 import com.bloxbean.cardano.client.account.Account
 import com.bloxbean.cardano.client.api.model.{ProtocolParams, Result}
-import com.bloxbean.cardano.client.backend.api.{
-    BackendService,
-    DefaultUtxoSupplier,
-    TransactionService
-}
+import com.bloxbean.cardano.client.backend.api.{BackendService, DefaultUtxoSupplier, TransactionService}
 import com.bloxbean.cardano.client.backend.blockfrost.common.Constants
-import com.bloxbean.cardano.client.backend.blockfrost.service.{
-    BFBackendService,
-    BFTransactionService
-}
+import com.bloxbean.cardano.client.backend.blockfrost.service.{BFBackendService, BFTransactionService}
 import com.bloxbean.cardano.client.common.model.{Network, Networks}
 import com.bloxbean.cardano.client.function.helper.SignerProviders
 import com.bloxbean.cardano.client.plutus.spec.PlutusData
 import com.bloxbean.cardano.client.quicktx.{QuickTxBuilder, ScriptTx}
 import com.bloxbean.cardano.client.transaction.spec.{Asset, Transaction}
-import scalus.bloxbean.{EvaluatorMode, NoScriptSupplier, ScalusTransactionEvaluator, SlotConfig}
+import scalus.bloxbean.{EvaluatorMode, NoScriptSupplier, ScalusTransactionEvaluator}
 import scalus.builtin.ByteString
+import scalus.cardano.ledger.SlotConfig
 import scalus.ledger.api.v1.PubKeyHash
 import sttp.tapir.*
 import sttp.tapir.server.netty.sync.NettySyncServer
@@ -81,7 +75,7 @@ object AppCtx {
             else sys.error(s"Unsupported network: $network")
         new AppCtx(
           network,
-          new Account(network, mnemonic),
+          Account.createFromMnemonic(network, mnemonic),
           new BFBackendService(url, blockfrostApiKey),
           tokenName
         )
@@ -91,7 +85,7 @@ object AppCtx {
         val network = new Network(0, 0)
         new AppCtx(
           network,
-          new Account(network, mnemonic),
+          Account.createFromMnemonic(network, mnemonic),
           new UZHBackendService("http://130.60.24.200:3000"),
           tokenName
         )
@@ -104,7 +98,7 @@ object AppCtx {
             "test test test test test test test test test test test test test test test test test test test test test test test sauce"
         new AppCtx(
           network,
-          new Account(network, mnemonic),
+          Account.createFromMnemonic(network, mnemonic),
           new BFBackendService(url, ""),
           tokenName
         )

@@ -41,7 +41,7 @@ object MintingPolicyV1 {
       *   admin public key hash
       * @param tokenName
       *   token name to mint or burn
-      * @param ownSymbol
+      * @param policyId
       *   own currency symbol (minting policy id)
       * @param tx
       *   transaction information
@@ -49,11 +49,11 @@ object MintingPolicyV1 {
     private def mintingPolicy(
         adminPubKeyHash: PubKeyHash, // admin pub key hash
         tokenName: TokenName, // token name
-        ownSymbol: CurrencySymbol,
+        policyId: PolicyId,
         tx: TxInfo
     ): Unit = {
         // find the tokens minted by this policy id
-        val mintedTokens = tx.mint.toSortedMap.get(ownSymbol).getOrFail("Tokens not found")
+        val mintedTokens = tx.mint.toSortedMap.get(policyId).getOrFail("Tokens not found")
         mintedTokens.toList match
             // there should be only one token with the given name
             case List.Cons((tokName, _), tail) =>

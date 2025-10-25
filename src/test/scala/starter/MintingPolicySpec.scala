@@ -47,7 +47,7 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
             MintingPolicy.validate(config.toData)(ctx.toData)
         }
 
-        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+        assertEval(mintingScript.program $ ctx.toData, Failure("Error evaluated"))
     }
 
     test("should fail when extra tokens are minted/burned") {
@@ -61,7 +61,7 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
             MintingPolicy.validate(config.toData)(ctx.toData)
         }
 
-        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+        assertEval(mintingScript.program $ ctx.toData, Failure("Error evaluated"))
     }
 
     test("should fail when admin signature is not provided") {
@@ -74,7 +74,7 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
             MintingPolicy.validate(config.toData)(ctx.toData)
         }
 
-        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+        assertEval(mintingScript.program $ ctx.toData, Failure("Error evaluated"))
     }
 
     test("should fail when admin signature is not correct") {
@@ -87,7 +87,7 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
             MintingPolicy.validate(config.toData)(ctx.toData)
         }
 
-        assertEval(mintingScript.script $ ctx.toData, Failure("Error evaluated"))
+        assertEval(mintingScript.program $ ctx.toData, Failure("Error evaluated"))
     }
 
     test("should succeed when minted token name is correct and admin signature is correct") {
@@ -100,14 +100,14 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
         MintingPolicy.validate(config.toData)(ctx.toData)
         // run the minting policy script as a Plutus script
         assertEval(
-          mintingScript.script $ ctx.toData,
-          Success(ExBudget.fromCpuAndMemory(cpu = 21_903317, memory = 76792))
+          mintingScript.program $ ctx.toData,
+          Success(ExBudget.fromCpuAndMemory(cpu = 19966280, memory = 69172))
         )
     }
 
-    test(s"validator size is 1549 bytes") {
-        val size = mintingScript.script.cborEncoded.length
-        assertEquals(size, 1549)
+    test(s"validator size is 1418 bytes") {
+        val size = mintingScript.program.cborEncoded.length
+        assertEquals(size, 1418)
     }
 
     private def makeScriptContext(mint: Value, signatories: List[PubKeyHash]) =
