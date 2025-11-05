@@ -1,25 +1,38 @@
 package starter
 
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scalus.*
 import scalus.builtin.ByteString
 
-class TxBuilderSpec extends munit.ScalaCheckSuite {
+import scala.util.Try
+
+class TxBuilderSpec extends AnyFunSuite with ScalaCheckPropertyChecks with BeforeAndAfterAll {
 
     private val appCtx = AppCtx.yaciDevKit("CO2 Tonne")
 
     private val pubKey: ByteString = ByteString.fromArray(appCtx.account.publicKeyBytes())
 
+    private val txBuilder = TxBuilder(appCtx)
+
+    override def beforeAll(): Unit = {
+        val params = Try(txBuilder.protocolParams)
+        if (!params.isSuccess) {
+            cancel("This test requires a Blockfrost API available. Start Yaci Devkit before running this test.")
+        }
+    }
+
     test("create minting transaction") {
-        val txBuilder = TxBuilder(appCtx)
         txBuilder.makeMintingTx(1000) match
             case Right(tx) =>
-                assertEquals(
-                  ByteString.fromArray(tx.getBody.getMint.get(0).getAssets.get(0).getNameAsBytes),
+                assert(
+                  ByteString.fromArray(tx.getBody.getMint.get(0).getAssets.get(0).getNameAsBytes) ==
                   appCtx.tokenNameByteString
                 )
-                assertEquals(tx.getWitnessSet.getVkeyWitnesses.size(), 1)
-                assertEquals(
-                  ByteString.fromArray(tx.getWitnessSet.getVkeyWitnesses.get(0).getVkey),
+                assert(tx.getWitnessSet.getVkeyWitnesses.size() == 1)
+                assert(
+                  ByteString.fromArray(tx.getWitnessSet.getVkeyWitnesses.get(0).getVkey) ==
                   pubKey
                 )
             case Left(err) => fail(err)

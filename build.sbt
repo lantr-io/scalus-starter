@@ -10,9 +10,6 @@ ThisBuild / scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked")
 // Add the Scalus compiler plugin
 addCompilerPlugin("org.scalus" %% "scalus-plugin" % scalusVersion)
 
-// Test dependencies
-ThisBuild / testFrameworks += new TestFramework("munit.Framework")
-
 // Main application
 lazy val core = (project in file("."))
     .settings(
@@ -25,16 +22,16 @@ lazy val core = (project in file("."))
         "com.bloxbean.cardano" % "cardano-client-lib" % "0.7.0",
         "com.bloxbean.cardano" % "cardano-client-backend-blockfrost" % "0.7.0",
         // Tapir for API definition
-        "com.softwaremill.sttp.tapir" %% "tapir-netty-server-sync" % "1.11.50",
-        "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % "1.11.50",
+        "com.softwaremill.sttp.tapir" %% "tapir-netty-server-sync" % "1.12.2",
+        "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % "1.12.2",
         // Argument parsing
         "com.monovore" %% "decline" % "2.5.0",
         "org.slf4j" % "slf4j-simple" % "2.0.17"
       ),
       libraryDependencies += "com.lihaoyi" %% "requests" % "0.9.0",
       libraryDependencies ++= Seq(
-        "org.scalameta" %% "munit" % "1.2.0" % Test,
-        "org.scalameta" %% "munit-scalacheck" % "1.2.0" % Test,
+        "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+        "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test,
         "org.scalacheck" %% "scalacheck" % "1.19.0" % Test
       )
     )
@@ -47,8 +44,8 @@ lazy val integration = (project in file("integration"))
       // test dependencies
       libraryDependencies += "com.lihaoyi" %% "requests" % "0.9.0",
       libraryDependencies ++= Seq(
-        "org.scalameta" %% "munit" % "1.2.0" % Test,
-        "org.scalameta" %% "munit-scalacheck" % "1.2.0" % Test,
+        "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+        "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test,
         "org.scalacheck" %% "scalacheck" % "1.19.0" % Test
       )
     )

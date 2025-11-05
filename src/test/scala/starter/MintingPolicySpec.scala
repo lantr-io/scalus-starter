@@ -1,6 +1,8 @@
 package starter
 
 import com.bloxbean.cardano.client.account.Account
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scalus.*
 import scalus.builtin.Data.toData
 import scalus.builtin.{ByteString, Data, PlatformSpecific, given}
@@ -18,7 +20,7 @@ enum Expected {
     case Failure(reason: String)
 }
 
-class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
+class MintingPolicySpec extends AnyFunSuite with ScalaCheckPropertyChecks with ScalusTest {
     import Expected.*
 
     private val account = new Account()
@@ -43,9 +45,10 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
           signatories = List(adminPubKeyHash)
         )
 
-        interceptMessage[Exception]("Token name not found") {
+        val exception = intercept[Exception] {
             MintingPolicy.validate(config.toData)(ctx.toData)
         }
+        assert(exception.getMessage == "Token name not found")
 
         assertEval(mintingScript.program $ ctx.toData, Failure("Error evaluated"))
     }
@@ -57,9 +60,10 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
           signatories = List(adminPubKeyHash)
         )
 
-        interceptMessage[Exception]("Multiple tokens found") {
+        val exception = intercept[Exception] {
             MintingPolicy.validate(config.toData)(ctx.toData)
         }
+        assert(exception.getMessage == "Multiple tokens found")
 
         assertEval(mintingScript.program $ ctx.toData, Failure("Error evaluated"))
     }
@@ -70,9 +74,10 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
           signatories = List.Nil
         )
 
-        interceptMessage[Exception]("Not signed by admin") {
+        val exception = intercept[Exception] {
             MintingPolicy.validate(config.toData)(ctx.toData)
         }
+        assert(exception.getMessage == "Not signed by admin")
 
         assertEval(mintingScript.program $ ctx.toData, Failure("Error evaluated"))
     }
@@ -83,9 +88,10 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
           signatories = List(PubKeyHash(crypto.blake2b_224(ByteString.fromString("wrong"))))
         )
 
-        interceptMessage[Exception]("Not signed by admin") {
+        val exception = intercept[Exception] {
             MintingPolicy.validate(config.toData)(ctx.toData)
         }
+        assert(exception.getMessage == "Not signed by admin")
 
         assertEval(mintingScript.program $ ctx.toData, Failure("Error evaluated"))
     }
@@ -107,7 +113,7 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
 
     test(s"validator size is 1418 bytes") {
         val size = mintingScript.program.cborEncoded.length
-        assertEquals(size, 1418)
+        assert(size == 1418)
     }
 
     private def makeScriptContext(mint: Value, signatories: List[PubKeyHash]) =
@@ -127,9 +133,9 @@ class MintingPolicySpec extends munit.ScalaCheckSuite, ScalusTest {
         val result = p.evaluateDebug
         (result, expected) match
             case (result: Result.Success, Expected.Success(expected)) =>
-                assertEquals(result.budget, expected)
+                assert(result.budget == expected)
             case (result: Result.Failure, Expected.Failure(expected)) =>
-                assertEquals(result.exception.getMessage, expected)
+                assert(result.exception.getMessage == expected)
             case _ => fail(s"Unexpected result: $result, expected: $expected")
     }
 }

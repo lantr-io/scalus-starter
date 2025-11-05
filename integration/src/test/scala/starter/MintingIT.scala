@@ -1,7 +1,8 @@
 package starter
 
 import com.bloxbean.cardano.client.transaction.spec.Transaction
-import munit.FunSuite
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.Try
 
@@ -15,7 +16,7 @@ import scala.util.Try
   *  start
   * }}}
   */
-class MintingIT extends FunSuite {
+class MintingIT extends AnyFunSuite with BeforeAndAfterAll {
 
     private val appCtx = AppCtx.yaciDevKit("CO2 Tonne")
     private val txBuilder = TxBuilder(appCtx)
@@ -27,10 +28,9 @@ class MintingIT extends FunSuite {
 
     override def beforeAll(): Unit = {
         val params = Try(txBuilder.protocolParams)
-        assume(
-          params.isSuccess,
-          "This test requires a Blockfrost API available. Start Yaci Devkit before running this test."
-        )
+        if (!params.isSuccess) {
+            cancel("This test requires a Blockfrost API available. Start Yaci Devkit before running this test.")
+        }
     }
 
     test("mint and burn tokens") {
